@@ -1,118 +1,66 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Análise Estatística de Futebol</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #020617;
-      padding: 20px;
-      text-align: center;
-    }
-    header h1 {
-      color: #38bdf8;
-    }
-    section {
-      padding: 20px;
-      max-width: 900px;
-      margin: auto;
-    }
-    .card {
-      background: #020617;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    button {
-      background: #38bdf8;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #0ea5e9;
-    }
-    footer {
-      text-align: center;
-      padding: 15px;
-      font-size: 12px;
-      background: #020617;
-      color: #94a3b8;
-    }
-    .alerta {
-      background: #1e293b;
-      padding: 10px;
-      border-left: 4px solid #38bdf8;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
+import requests
+import time
 
-<header>
-  <h1>📊 Análise Estatística de Futebol</h1>
-  <p>Probabilidades e dados para fins educacionais</p>
-</header>
-
-<section>
-
-  <div class="alerta">
-    ⚠️ Este site é apenas para estudo e análise estatística.
-    Não oferece apostas, dicas de apostas ou garantias de resultados.
-  </div>
-
-  <div class="card">
-    <h2>Jogo em análise</h2>
-    <p><strong>Time A</strong> x <strong>Time B</strong></p>
-    <button onclick="analisar()">Analisar jogo</button>
-  </div>
-
-  <div class="card" id="resultado">
-    <h2>Resultado da Análise</h2>
-    <p>Clique em "Analisar jogo" para gerar os dados.</p>
-  </div>
-
-</section>
-
-<footer>
-  Projeto educacional • Estatística e Programação • Gratuito
-</footer>
-
-<script>
-function analisar() {
-  const golsTimeA = Math.random() * 2;
-  const golsTimeB = Math.random() * 2;
-
-  const probVitoriaA = Math.round((golsTimeA / (golsTimeA + golsTimeB)) * 100);
-  const probVitoriaB = 100 - probVitoriaA;
-
-  const probGolProx10 = Math.floor(Math.random() * 30) + 5;
-
-  document.getElementById("resultado").innerHTML = `
-    <h2>Resultado da Análise</h2>
-    <p>📈 Probabilidade estimada de vitória:</p>
-    <ul>
-      <li>Time A: <strong>${probVitoriaA}%</strong></li>
-      <li>Time B: <strong>${probVitoriaB}%</strong></li>
-    </ul>
-    <p>⚽ Chance de ocorrer um gol nos próximos 10 minutos:</p>
-    <p><strong>${probGolProx10}%</strong></p>
-    <p style="font-size:12px;color:#94a3b8;">
-      Cálculos baseados em dados simulados para fins educacionais.
-    </p>
-  `;
+# Configurações da API
+API_KEY = "SUA_CHAVE_AQUI"
+BASE_URL = "https://v3.football.api-sports.io"
+HEADERS = {
+    'x-rapidapi-host': "v3.football.api-sports.io",
+    'x-rapidapi-key': API_KEY
 }
-</script>
 
-</body>
-</html>
+def get_live_matches():
+    """Busca jogos que estão acontecendo agora."""
+    url = f"{BASE_URL}/fixtures?live=all"
+    response = requests.get(url, headers=HEADERS)
+    return response.json().get('response', [])
+
+def get_h2h_and_stats(home_id, away_id):
+    """Analisa histórico de confrontos diretos (H2H)."""
+    url = f"{BASE_URL}/fixtures/headtohead?h2h={home_id}-{away_id}&last=5"
+    response = requests.get(url, headers=HEADERS)
+    # Lógica simples: contar média de gols nos últimos 5 confrontos
+    h2h_data = response.json().get('response', [])
+    total_goals = sum([f['goals']['home'] + f['goals']['away'] for f in h2h_data if f['goals']['home'] is not None])
+    return total_goals / len(h2h_data) if h2h_data else 0
+
+def analyze_match(match):
+    """Aplica a lógica de análise para Over HT e FT."""
+    fixture_id = match['fixture']['id']
+    home_team = match['teams']['home']['name']
+    away_team = match['teams']['away']['name']
+    home_id = match['teams']['home']['id']
+    away_id = match['teams']['away']['id']
+    
+    # Dados do jogo ao vivo
+    score_home = match['goals']['home'] or 0
+    score_away = match['goals']['away'] or 0
+    elapsed = match['fixture']['status']['elapsed']
+    
+    # Simulação de análise de histórico e H2H
+    avg_h2h_goals = get_h2h_and_stats(home_id, away_id)
+    
+    print(f"\n--- Analisando: {home_team} vs {away_team} ({elapsed}') ---")
+    
+    # ESTRATÉGIA OVER HT (Gols no 1º Tempo)
+    # Critério: Jogo entre 15-30 min, 0x0, H2H histórico alto (>2.5 gols)
+    if 15 <= elapsed <= 30 and (score_home + score_away == 0):
+        if avg_h2h_goals > 2.0:
+            print(f"🔥 ALERTA: Possível Over 0.5 HT (H2H médio: {avg_h2h_goals})")
+
+    # ESTRATÉGIA OVER FT (Gols no Jogo Todo)
+    # Critério: Segundo tempo, muitos ataques, placar apertado
+    if elapsed >= 60 and (score_home + score_away <= 2):
+        print(f"✅ ALERTA: Possível Over 1.5 ou 2.5 FT baseado no tempo de jogo.")
+
+# Execução principal
+if __name__ == "__main__":
+    print("Iniciando Monitor de Jogos Ao Vivo...")
+    matches = get_live_matches()
+    
+    if not matches:
+        print("Nenhum jogo ao vivo no momento.")
+    else:
+        for match in matches:
+            analyze_match(match)
+            time.sleep(1) # Respeitar limite de taxa da API
