@@ -1,163 +1,111 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Análise Estatística de Futebol ao Vivo</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #0f172a;
-      color: #e5e7eb;
-    }
-
-    header {
-      background-color: #020617;
-      padding: 20px;
-      text-align: center;
-    }
-
-    header h1 {
-      margin: 0;
-      color: #38bdf8;
-    }
-
-    section {
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    .alerta {
-      background: #1e293b;
-      border-left: 4px solid #38bdf8;
-      padding: 10px;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background: #020617;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-
-    button {
-      background: #38bdf8;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    button:hover {
-      background: #0ea5e9;
-    }
-
-    footer {
-      background: #020617;
-      text-align: center;
-      font-size: 12px;
-      padding: 15px;
-      color: #94a3b8;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analista de Gols Pro - Live</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-900 text-white font-sans">
 
-<body>
+    <div class="container mx-auto p-5">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-green-500">⚽ Goal Predictor Pro</h1>
+            <p class="text-gray-400">Análise em tempo real: Over HT/FT, H2H e Escalações</p>
+        </header>
 
-<header>
-  <h1>📊 Análise Estatística de Futebol</h1>
-  <p>Simulação ao vivo • Projeto educacional</p>
-</header>
+        <div class="bg-gray-800 p-4 rounded-lg mb-8 flex flex-col md:flex-row gap-4 items-center justify-center">
+            <input type="text" id="apiKey" placeholder="Sua API Key (API-Football)" class="p-2 rounded bg-gray-700 w-full md:w-1/3 outline-none focus:ring-2 focus:ring-green-500">
+            <button onclick="startAnalysis()" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-bold transition">Analisar Jogos Ao Vivo</button>
+        </div>
 
-<section>
+        <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+    </div>
 
-  <div class="alerta">
-    ⚠️ Este site realiza apenas análises estatísticas simuladas.
-    Não oferece apostas, dicas de apostas ou garantias de resultados.
-  </div>
+    <script>
+        async function fetchData(endpoint, key) {
+            const res = await fetch(`https://v3.football.api-sports.io/${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'x-rapidapi-host': 'v3.football.api-sports.io',
+                    'x-rapidapi-key': key
+                }
+            });
+            return res.json();
+        }
 
-  <div class="card">
-    <h2>Jogo em andamento</h2>
-    <p><strong>Time A</strong> x <strong>Time B</strong></p>
-  </div>
+        async function startAnalysis() {
+            const key = document.getElementById('apiKey').value;
+            if (!key) return alert("Insira sua API Key!");
 
-  <div class="card" id="resultado">
-    <h2>Carregando dados ao vivo...</h2>
-    <p>A simulação começa automaticamente.</p>
-  </div>
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "<p class='text-center col-span-full'>Buscando dados em tempo real...</p>";
 
-</section>
+            try {
+                // 1. Pega jogos ao vivo
+                const liveData = await fetchData('fixtures?live=all', key);
+                const matches = liveData.response;
 
-<footer>
-  Projeto gratuito • Estatística • Programação • Educacional
-</footer>
+                resultsDiv.innerHTML = "";
 
-<script>
-/* ============================
-   SIMULAÇÃO DE JOGO AO VIVO
-   ============================ */
+                for (let match of matches) {
+                    const fixtureId = match.fixture.id;
+                    const homeId = match.teams.home.id;
+                    const awayId = match.teams.away.id;
 
-let minuto = 0;
-let ataquesA = 0;
-let ataquesB = 0;
-let intervalo = null;
+                    // 2. Busca H2H (Histórico)
+                    const h2hData = await fetchData(`fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`, key);
+                    const h2hGoals = h2hData.response.reduce((acc, curr) => acc + curr.goals.home + curr.goals.away, 0) / 5;
 
-/* Calcula probabilidade estimada de gol */
-function calcularProbabilidadeGol() {
-  const fatorTempo = minuto / 90;
-  const fatorAtaques = (ataquesA + ataquesB) / 120;
+                    // 3. Busca Escalação (Lineups)
+                    const lineups = await fetchData(`fixtures/lineups?fixture=${fixtureId}`, key);
+                    
+                    // Lógica de Sugestão
+                    let sugestao = "Aguardando Padrão";
+                    let cor = "gray";
 
-  let prob = Math.round((fatorTempo + fatorAtaques) * 50);
+                    // Critério Over HT: Empate 0x0 entre 15-30 min + H2H alto
+                    if (match.fixture.status.elapsed >= 15 && match.fixture.status.elapsed <= 35 && (match.goals.home + match.goals.away === 0)) {
+                        if (h2hGoals > 2.5) {
+                            sugestao = "🔥 ALTA CHANCE: OVER 0.5 HT";
+                            cor = "yellow";
+                        }
+                    } 
+                    // Critério Over FT: Jogo empatado ou 1 gol de diferença aos 70 min
+                    else if (match.fixture.status.elapsed > 65 && Math.abs(match.goals.home - match.goals.away) <= 1) {
+                        sugestao = "🚀 ALTA CHANCE: OVER FT (Próximo Gol)";
+                        cor = "green";
+                    }
 
-  if (prob > 65) prob = 65;
-  if (prob < 5) prob = 5;
+                    renderMatch(match, h2hGoals, sugestao, cor);
+                }
+            } catch (err) {
+                alert("Erro ao buscar dados. Verifique sua chave ou limite de API.");
+            }
+        }
 
-  return prob;
-}
-
-/* Atualiza o painel */
-function atualizarTela() {
-  const probGol = calcularProbabilidadeGol();
-
-  document.getElementById("resultado").innerHTML = `
-    <h2>📡 Jogo ao vivo (simulação)</h2>
-    <p>⏱️ Minuto: <strong>${minuto}</strong></p>
-    <p>⚔️ Ataques Time A: <strong>${ataquesA}</strong></p>
-    <p>⚔️ Ataques Time B: <strong>${ataquesB}</strong></p>
-
-    <p>⚽ Probabilidade estimada de gol nos próximos minutos:</p>
-    <h3>${probGol}%</h3>
-
-    <p style="font-size:12px;color:#94a3b8;">
-      Dados simulados • Análise estatística educacional
-    </p>
-  `;
-}
-
-/* Inicia automaticamente */
-function iniciarSimulacao() {
-  intervalo = setInterval(() => {
-    if (minuto >= 90) {
-      clearInterval(intervalo);
-      return;
-    }
-
-    minuto++;
-    ataquesA += Math.floor(Math.random() * 3);
-    ataquesB += Math.floor(Math.random() * 3);
-
-    atualizarTela();
-  }, 5000);
-}
-
-iniciarSimulacao();
-</script>
-
+        function renderMatch(match, h2h, sugestao, cor) {
+            const resultsDiv = document.getElementById('results');
+            const card = `
+                <div class="bg-gray-800 border-l-4 border-${cor}-500 p-5 rounded-lg shadow-xl">
+                    <div class="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>${match.league.name}</span>
+                        <span class="font-bold text-red-500">${match.fixture.status.elapsed}' min</span>
+                    </div>
+                    <div class="text-xl font-bold flex justify-between items-center mb-4">
+                        <span>${match.teams.home.name} ${match.goals.home}</span>
+                        <span>x</span>
+                        <span>${match.goals.away} ${match.teams.away.name}</span>
+                    </div>
+                    <div class="text-sm space-y-1 border-t border-gray-700 pt-3">
+                        <p>📊 Histórico H2H: <span class="text-blue-400">${h2h.toFixed(1)} gols/méd</span></p>
+                        <p class="font-bold text-${cor}-400 mt-2">${sugestao}</p>
+                    </div>
+                </div>
+            `;
+            resultsDiv.innerHTML += card;
+        }
+    </script>
 </body>
 </html>
