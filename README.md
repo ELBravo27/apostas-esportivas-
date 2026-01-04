@@ -1,118 +1,162 @@
-[index.html.txt](https://github.com/user-attachments/files/24424134/index.html.txt)
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Análise Estatística de Futebol</title>
+  <title>Análise Estatística de Futebol ao Vivo</title>
+
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
       margin: 0;
-      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #0f172a;
+      color: #e5e7eb;
     }
+
     header {
-      background: #020617;
+      background-color: #020617;
       padding: 20px;
       text-align: center;
     }
+
     header h1 {
+      margin: 0;
       color: #38bdf8;
     }
+
     section {
-      padding: 20px;
       max-width: 900px;
       margin: auto;
+      padding: 20px;
     }
+
+    .alerta {
+      background: #1e293b;
+      border-left: 4px solid #38bdf8;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
     .card {
       background: #020617;
       padding: 20px;
       border-radius: 8px;
       margin-bottom: 20px;
     }
+
     button {
       background: #38bdf8;
       border: none;
       padding: 10px 15px;
       border-radius: 5px;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
     }
+
     button:hover {
       background: #0ea5e9;
     }
+
     footer {
-      text-align: center;
-      padding: 15px;
-      font-size: 12px;
       background: #020617;
+      text-align: center;
+      font-size: 12px;
+      padding: 15px;
       color: #94a3b8;
-    }
-    .alerta {
-      background: #1e293b;
-      padding: 10px;
-      border-left: 4px solid #38bdf8;
-      margin-bottom: 20px;
-      font-size: 14px;
     }
   </style>
 </head>
+
 <body>
 
 <header>
   <h1>📊 Análise Estatística de Futebol</h1>
-  <p>Probabilidades e dados para fins educacionais</p>
+  <p>Simulação ao vivo • Projeto educacional</p>
 </header>
 
 <section>
 
   <div class="alerta">
-    ⚠️ Este site é apenas para estudo e análise estatística.
+    ⚠️ Este site realiza apenas análises estatísticas simuladas.
     Não oferece apostas, dicas de apostas ou garantias de resultados.
   </div>
 
   <div class="card">
-    <h2>Jogo em análise</h2>
+    <h2>Jogo em andamento</h2>
     <p><strong>Time A</strong> x <strong>Time B</strong></p>
-    <button onclick="analisar()">Analisar jogo</button>
   </div>
 
   <div class="card" id="resultado">
-    <h2>Resultado da Análise</h2>
-    <p>Clique em "Analisar jogo" para gerar os dados.</p>
+    <h2>Carregando dados ao vivo...</h2>
+    <p>A simulação começa automaticamente.</p>
   </div>
 
 </section>
 
 <footer>
-  Projeto educacional • Estatística e Programação • Gratuito
+  Projeto gratuito • Estatística • Programação • Educacional
 </footer>
 
 <script>
-function analisar() {
-  const golsTimeA = Math.random() * 2;
-  const golsTimeB = Math.random() * 2;
+/* ============================
+   SIMULAÇÃO DE JOGO AO VIVO
+   ============================ */
 
-  const probVitoriaA = Math.round((golsTimeA / (golsTimeA + golsTimeB)) * 100);
-  const probVitoriaB = 100 - probVitoriaA;
+let minuto = 0;
+let ataquesA = 0;
+let ataquesB = 0;
+let intervalo = null;
 
-  const probGolProx10 = Math.floor(Math.random() * 30) + 5;
+/* Calcula probabilidade estimada de gol */
+function calcularProbabilidadeGol() {
+  const fatorTempo = minuto / 90;
+  const fatorAtaques = (ataquesA + ataquesB) / 120;
+
+  let prob = Math.round((fatorTempo + fatorAtaques) * 50);
+
+  if (prob > 65) prob = 65;
+  if (prob < 5) prob = 5;
+
+  return prob;
+}
+
+/* Atualiza o painel */
+function atualizarTela() {
+  const probGol = calcularProbabilidadeGol();
 
   document.getElementById("resultado").innerHTML = `
-    <h2>Resultado da Análise</h2>
-    <p>📈 Probabilidade estimada de vitória:</p>
-    <ul>
-      <li>Time A: <strong>${probVitoriaA}%</strong></li>
-      <li>Time B: <strong>${probVitoriaB}%</strong></li>
-    </ul>
-    <p>⚽ Chance de ocorrer um gol nos próximos 10 minutos:</p>
-    <p><strong>${probGolProx10}%</strong></p>
+    <h2>📡 Jogo ao vivo (simulação)</h2>
+    <p>⏱️ Minuto: <strong>${minuto}</strong></p>
+    <p>⚔️ Ataques Time A: <strong>${ataquesA}</strong></p>
+    <p>⚔️ Ataques Time B: <strong>${ataquesB}</strong></p>
+
+    <p>⚽ Probabilidade estimada de gol nos próximos minutos:</p>
+    <h3>${probGol}%</h3>
+
     <p style="font-size:12px;color:#94a3b8;">
-      Cálculos baseados em dados simulados para fins educacionais.
+      Dados simulados • Análise estatística educacional
     </p>
   `;
 }
+
+/* Inicia automaticamente */
+function iniciarSimulacao() {
+  intervalo = setInterval(() => {
+    if (minuto >= 90) {
+      clearInterval(intervalo);
+      return;
+    }
+
+    minuto++;
+    ataquesA += Math.floor(Math.random() * 3);
+    ataquesB += Math.floor(Math.random() * 3);
+
+    atualizarTela();
+  }, 5000);
+}
+
+iniciarSimulacao();
 </script>
 
 </body>
